@@ -1,0 +1,254 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>심리검사</title>
+<meta name="description" content="상황별 문항에 솔직하게 답해 보는 심리검사" />
+<meta property="og:title" content="심리검사" />
+<meta property="og:description" content="상황별 문항에 솔직하게 답해 보는 심리검사" />
+<style>
+:root {
+  --bg: #eef2f8; --card: #ffffff; --text: #1b2433; --sub: #5b6578; --line: #d9e0ec;
+  --accent: #2563eb; --accent-text: #ffffff; --hover: #eff4ff; --shadow: 0 8px 30px rgba(30,50,90,.10);
+}
+:root[data-theme="dark"] {
+  --bg: #0e131c; --card: #182030; --text: #e8edf6; --sub: #9aa6bb; --line: #2c3850;
+  --accent: #6ea4ff; --accent-text: #0b1220; --hover: #1f2b43; --shadow: 0 8px 30px rgba(0,0,0,.4);
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; min-height: 100vh; background: var(--bg); color: var(--text);
+  font-family: Pretendard, -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", system-ui, sans-serif;
+  line-height: 1.7; word-break: keep-all; display: flex; justify-content: center; align-items: flex-start; padding: 72px 16px 40px;
+}
+.card { width: 100%; max-width: 520px; background: var(--card); border: 1px solid var(--line); border-radius: 20px; box-shadow: var(--shadow); padding: 24px; }
+h1, h2 { letter-spacing: -0.02em; line-height: 1.35; margin: 0 0 12px; }
+h1 { font-size: 30px; } h2 { font-size: 24px; }
+p { margin: 0 0 16px; }
+.center { text-align: center; padding: 16px 0; }
+.nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+button { font: inherit; color: inherit; cursor: pointer; }
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.nav button { background: transparent; border: 1px solid var(--line); border-radius: 999px; padding: 6px 14px; font-size: 14px; }
+.nav button:hover { background: var(--hover); }
+.btn { display: block; width: 100%; padding: 13px 16px; border-radius: 12px; font-size: 16px; font-weight: 600; border: 1px solid var(--accent); margin-top: 10px; }
+.btn.primary { background: var(--accent); color: var(--accent-text); }
+.btn.ghost { background: transparent; color: var(--accent); }
+.btn.ghost:hover { background: var(--hover); }
+label.field { display: block; font-weight: 600; margin-bottom: 6px; }
+input[type=text] { width: 100%; font: inherit; padding: 12px 14px; border-radius: 12px; border: 1px solid var(--line); background: var(--bg); color: var(--text); }
+input[type=text]:focus { outline: 3px solid var(--accent); outline-offset: 1px; border-color: var(--accent); }
+.err { color: #d1334a; font-size: 14px; margin: 6px 0 0; min-height: 1.2em; }
+:root[data-theme="dark"] .err { color: #ff8da0; }
+.progress { color: var(--accent); font-weight: 700; font-size: 15px; margin-bottom: 8px; }
+.situation { font-size: 17px; font-weight: 600; margin-bottom: 16px; }
+.opt { display: flex; align-items: flex-start; gap: 12px; width: 100%; text-align: left; padding: 14px; margin-bottom: 10px; border: 1px solid var(--line); border-radius: 12px; background: transparent; }
+.opt:hover { background: var(--hover); border-color: var(--accent); }
+.dot { flex: none; width: 22px; height: 22px; margin-top: 2px; border-radius: 50%; border: 2px solid var(--accent); display: inline-block; }
+.opt:active .dot { background: var(--accent); box-shadow: inset 0 0 0 4px var(--card); }
+.item { border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; margin-bottom: 10px; }
+.item .l1 { color: var(--sub); font-size: 13px; }
+.item .l2 { margin: 2px 0; }
+.item .l3 { margin: 0; }
+.hl { color: var(--accent); font-weight: 700; }
+.summary { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--line); }
+.summary p { margin: 0 0 4px; }
+.muted { color: var(--sub); }
+#theme { position: fixed; top: 14px; right: 14px; width: 44px; height: 44px; border-radius: 50%; border: 1px solid var(--line); background: var(--card); box-shadow: var(--shadow); font-size: 20px; line-height: 1; z-index: 10; }
+@media (max-width: 480px) { body { padding-top: 70px; } .card { padding: 18px; } h1 { font-size: 26px; } }
+</style>
+</head>
+<body>
+<button id="theme" type="button"></button>
+<main class="card" id="app"></main>
+
+<script>
+// ===== 상황 목록: 같은 형식으로 항목을 추가하면 문항이 늘어납니다 =====
+const SITUATIONS = [
+  {
+    text: "당신은 소개팅을 나간 상황이다. 눈 앞에 천년의 이상형이 앉아 있고 그 이상형이 나에게 메뚜기 종류를 200가지 이상 알고 있냐고 묻는다. 다음과 같은 상황에서 당신은 뭐라고 답할 것인가?",
+    summary: "소개팅에서 이상형이 메뚜기 200종 이상 아냐고 물음",
+    options: [
+      "잘 모른다고 말하고 설명을 부탁한다.",
+      "아는 부분만 말하고 나머지는 모른다고 밝힌다.",
+      "들어 본 용어를 섞어 아는 것처럼 그럴듯하게 의견을 말한다.",
+      "얼버무리고 다른 화제로 넘어간다."
+    ]
+  },
+  {
+    text: "회사에서 대리님이 사원인 나에게 회의에서 기획안이 어떤지 묻는다. 내가 보기에는 A부분을 제외하고 전부 별로라고 생각이 든다. 이 때 당신은 어떻게 대답할 것인가?",
+    summary: "회의에서 대리님이 기획안이 어떤지 물음 (A 부분만 괜찮다고 생각)",
+    options: [
+      "딱 봤을 때는 조금 더 개선이 필요할 것 같습니다.",
+      "A 부분은 잘 만들어진 것 같습니다.",
+      "전체적인 방향성은 좋은데, 타깃 포지셔닝과 확장성 측면에서 시너지를 낼 수 있게 보완하면 더 좋을 것 같습니다.",
+      "잘 모르겠습니다."
+    ]
+  }
+];
+// 보기 번호(1~4)별 유형 (모든 상황 공통)
+const TYPES = ["솔직", "부분 솔직", "설득형 헛소리", "회피형 헛소리"];
+const STORE_KEY = "psych-test-result";
+
+const app = document.getElementById("app");
+const state = {
+  screen: "start",   // start | name | situation | done | result
+  name: "",
+  index: 0,
+  answers: [],       // [{choice: 0~3, ms}]
+  startedAt: 0,
+  last: null,        // 방금 끝낸 결과 {name, answers}
+  saved: false,
+  resultFrom: "start"
+};
+
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+function saveResult(data) {
+  try {
+    localStorage.setItem(STORE_KEY, JSON.stringify(data));
+    return localStorage.getItem(STORE_KEY) !== null;
+  } catch (e) { return false; }
+}
+function loadResult() {
+  try {
+    const d = JSON.parse(localStorage.getItem(STORE_KEY));
+    if (d && typeof d.name === "string" && Array.isArray(d.answers) && d.answers.length) return d;
+  } catch (e) {}
+  return null;
+}
+
+function go(screen) { state.screen = screen; render(); window.scrollTo(0, 0); }
+
+function navBar() {
+  return `<div class="nav"><button type="button" data-act="back">← 뒤로</button><button type="button" data-act="home">🏠 홈</button></div>`;
+}
+
+function render() {
+  const s = state.screen;
+  if (s === "start") {
+    app.innerHTML = `<div class="center"><h1>심리검사</h1><p class="muted">상황별 문항에 솔직하게 답해 주세요.</p>
+      <button class="btn primary" type="button" data-act="begin">검사 시작하기</button>
+      <button class="btn ghost" type="button" data-act="results">결과 보기</button></div>`;
+  } else if (s === "name") {
+    app.innerHTML = `${navBar()}<h2>이름을 알려주세요</h2>
+      <form id="nameForm" novalidate><label class="field" for="nameInput">이름</label>
+      <input id="nameInput" type="text" autocomplete="off" maxlength="30" value="${esc(state.name)}" />
+      <p class="err" id="nameErr" role="alert"></p>
+      <button class="btn primary" type="submit">다음</button></form>`;
+    document.getElementById("nameInput").focus();
+  } else if (s === "situation") {
+    const sit = SITUATIONS[state.index];
+    app.innerHTML = `${navBar()}<div class="progress">${state.index + 1} / ${SITUATIONS.length}</div>
+      <p class="situation">${esc(sit.text)}</p>
+      ${sit.options.map((o, i) => `<button type="button" class="opt" data-choice="${i}"><span class="dot" aria-hidden="true"></span><span>${i + 1}. ${esc(o)}</span></button>`).join("")}`;
+    state.startedAt = performance.now();
+  } else if (s === "done") {
+    const tail = state.saved ? " 결과가 저장되었습니다." : " (결과를 저장하지 못했습니다. 이 화면에서는 볼 수 있어요.)";
+    app.innerHTML = `${navBar()}<div class="center"><h2>검사 완료</h2>
+      <p>${esc(state.name)}님, 모든 문항에 응답하셨습니다.${tail}</p>
+      <button class="btn primary" type="button" data-act="results">결과 보기</button></div>`;
+  } else if (s === "result") {
+    renderResult();
+  }
+}
+
+function renderResult() {
+  const data = state.last || loadResult();
+  if (!data) {
+    app.innerHTML = `${navBar()}<h2>결과</h2><p>저장된 검사 결과가 없습니다.</p><p class="muted">'검사 시작하기'로 검사를 먼저 진행해 주세요.</p>`;
+    return;
+  }
+  const rows = data.answers.map((a, i) => ({ a, sit: SITUATIONS[i] })).filter(r => r.sit);
+  const counts = TYPES.map(() => 0);
+  let total = 0;
+  const items = rows.map(({ a, sit }, i) => {
+    counts[a.choice]++;
+    total += a.ms;
+    return `<div class="item"><div class="l1">${i + 1}. ${esc(sit.summary)}</div>
+      <div class="l2">내 선택: ${a.choice + 1}. ${esc(sit.options[a.choice])} <span class="hl">[${TYPES[a.choice]}]</span></div>
+      <p class="l3 hl">반응시간 ${(a.ms / 1000).toFixed(1)}초</p></div>`;
+  }).join("");
+  const avg = rows.length ? (total / rows.length / 1000).toFixed(1) : "0.0";
+  app.innerHTML = `${navBar()}<h2>결과</h2><p class="muted">${esc(data.name)}님의 응답 요약</p>${items}
+    <div class="summary"><p>평균 반응시간 ${avg}초 (문항이 화면에 보인 순간부터 선택까지)</p>
+    <p>${TYPES.map((t, i) => `${t} ${counts[i]}회`).join(" · ")}</p></div>`;
+}
+
+function finish() {
+  const data = { name: state.name, answers: state.answers.slice() };
+  state.last = data;
+  state.saved = saveResult(data);
+  go("done");
+}
+
+function onBack() {
+  const s = state.screen;
+  if (s === "name") go("start");
+  else if (s === "situation") {
+    if (state.index === 0) go("name");
+    else { state.index--; state.answers.length = state.index; go("situation"); }
+  } else if (s === "done") {
+    state.last = null;
+    state.index = SITUATIONS.length - 1;
+    state.answers.length = state.index;
+    go("situation");
+  } else if (s === "result") go(state.resultFrom);
+}
+
+function onHome() {
+  if (state.screen === "name" || state.screen === "situation") {
+    state.answers = []; state.index = 0; state.name = "";
+  }
+  go("start");
+}
+
+app.addEventListener("click", e => {
+  const opt = e.target.closest("[data-choice]");
+  if (opt && state.screen === "situation") {
+    const ms = performance.now() - state.startedAt;
+    state.answers[state.index] = { choice: Number(opt.dataset.choice), ms };
+    if (state.index + 1 < SITUATIONS.length) { state.index++; go("situation"); }
+    else finish();
+    return;
+  }
+  const act = e.target.closest("[data-act]");
+  if (!act) return;
+  switch (act.dataset.act) {
+    case "begin": state.answers = []; state.index = 0; go("name"); break;
+    case "results": state.resultFrom = state.screen === "done" ? "done" : "start"; go("result"); break;
+    case "back": onBack(); break;
+    case "home": onHome(); break;
+  }
+});
+
+app.addEventListener("submit", e => {
+  e.preventDefault();
+  if (e.target.id !== "nameForm") return;
+  const input = document.getElementById("nameInput");
+  const v = input.value.trim();
+  if (!v) {
+    document.getElementById("nameErr").textContent = "이름을 입력해 주세요.";
+    input.focus();
+    return;
+  }
+  state.name = v; state.answers = []; state.index = 0;
+  go("situation");
+});
+
+// 라이트/다크 전환 (기기 설정을 따르고, 선택은 저장하지 않음)
+const themeBtn = document.getElementById("theme");
+const root = document.documentElement;
+function setTheme(t) {
+  root.dataset.theme = t;
+  themeBtn.textContent = t === "dark" ? "☀️" : "🌙";
+  themeBtn.setAttribute("aria-label", t === "dark" ? "라이트 모드로 전환" : "다크 모드로 전환");
+}
+setTheme(matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+themeBtn.addEventListener("click", () => setTheme(root.dataset.theme === "dark" ? "light" : "dark"));
+
+render();
+</script>
+</body>
+</html>
