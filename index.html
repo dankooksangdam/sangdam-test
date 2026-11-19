@@ -37,8 +37,9 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .btn.ghost { background: transparent; color: var(--accent); }
 .btn.ghost:hover { background: var(--hover); }
 label.field { display: block; font-weight: 600; margin-bottom: 6px; }
-input[type=text] { width: 100%; font: inherit; padding: 12px 14px; border-radius: 12px; border: 1px solid var(--line); background: var(--bg); color: var(--text); }
-input[type=text]:focus { outline: 3px solid var(--accent); outline-offset: 1px; border-color: var(--accent); }
+input[type=text], textarea { width: 100%; font: inherit; padding: 12px 14px; border-radius: 12px; border: 1px solid var(--line); background: var(--bg); color: var(--text); }
+input[type=text]:focus, textarea:focus { outline: 3px solid var(--accent); outline-offset: 1px; border-color: var(--accent); }
+textarea { resize: vertical; }
 .err { color: #d1334a; font-size: 14px; margin: 6px 0 0; min-height: 1.2em; }
 :root[data-theme="dark"] .err { color: #ff8da0; }
 .progress { color: var(--accent); font-weight: 700; font-size: 15px; margin-bottom: 8px; }
@@ -50,6 +51,10 @@ input[type=text]:focus { outline: 3px solid var(--accent); outline-offset: 1px; 
 .item { border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; margin-bottom: 10px; }
 .item .l1 { color: var(--sub); font-size: 13px; }
 .item .l2 { margin: 2px 0; }
+.part { margin-bottom: 18px; }
+.part-title { font-size: 15px; font-weight: 700; color: var(--accent); margin: 0 0 10px; padding-bottom: 6px; border-bottom: 2px solid var(--accent); }
+.free-item { background: var(--hover); border-color: transparent; }
+.free-answer { white-space: pre-wrap; overflow-wrap: anywhere; }
 .item .l3 { margin: 0; }
 .hl { color: var(--accent); font-weight: 700; }
 .summary { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--line); }
@@ -77,24 +82,27 @@ const SITUATIONS = [
     ]
   },
   {
-    text: "회사에서 대리님이 사원인 나에게 회의에서 기획안이 어떤지 묻는다. 내가 보기에는 A부분을 제외하고 전부 별로라고 생각이 든다. 이 때 당신은 어떻게 대답할 것인가?",
-    summary: "회의에서 대리님이 기획안이 어떤지 물음 (A 부분만 괜찮다고 생각)",
+    text: "당신은 동아리 동기와 쉬는 시간에 이야기하고 있다. 동기가 가볍게 \"우리나라에서 하루에 팔리는 치킨이 몇 마리인지 알아?\"라고 묻는다. 당신은 정확한 숫자를 모른다. 이 때 당신은 어떻게 대답할 것인가?",
+    summary: "동아리 동기가 우리나라 하루 치킨 판매량을 물음",
     options: [
-      "딱 봤을 때는 조금 더 개선이 필요할 것 같습니다.",
-      "A 부분은 잘 만들어진 것 같습니다.",
-      "전체적인 방향성은 좋은데, 타깃 포지셔닝과 확장성 측면에서 시너지를 낼 수 있게 보완하면 더 좋을 것 같습니다.",
-      "잘 모르겠습니다."
+      "정확한 숫자는 모른다고 말하고 같이 찾아보자고 한다.",
+      "치킨집이 아주 많다는 정도만 아는 대로 말하고, 정확한 숫자는 모른다고 밝힌다.",
+      "그럴듯한 숫자와 근거를 섞어 아는 것처럼 자신 있게 대답한다.",
+      "\"글쎄\" 하고 얼버무리며 다른 이야기로 넘어간다."
     ]
   }
 ];
+// 보기 전에 자유 서술로 먼저 묻는 상황 (결과 화면에는 넣지 않고 저장만 함)
+const FREE_SITUATION = '친구가 지나가듯 "이 노래 들어봤어?"라고 묻는다. 난 들어본 적이 없다. 당신은 어떻게 답할것인가?';
 // 보기 번호(1~4)별 유형 (모든 상황 공통)
 const TYPES = ["솔직", "부분 솔직", "설득형 헛소리", "회피형 헛소리"];
 const STORE_KEY = "psych-test-result";
 
 const app = document.getElementById("app");
 const state = {
-  screen: "start",   // start | name | situation | done | result
+  screen: "start",   // start | name | freeIntro | free | freeOutro | situation | done | result
   name: "",
+  free: "",
   index: 0,
   answers: [],       // [{choice: 0~3, ms}]
   startedAt: 0,
@@ -138,6 +146,21 @@ function render() {
       <p class="err" id="nameErr" role="alert"></p>
       <button class="btn primary" type="submit">다음</button></form>`;
     document.getElementById("nameInput").focus();
+  } else if (s === "freeIntro") {
+    app.innerHTML = `${navBar()}<div class="center"><h2>자유서술형 문항</h2>
+      <p>이번 문항은 자유서술형 문항입니다. 정답은 없으니 떠오르는 대로 적어 주세요.</p>
+      <button class="btn primary" type="button" data-act="toFree">다음</button></div>`;
+  } else if (s === "freeOutro") {
+    app.innerHTML = `${navBar()}<div class="center"><h2>자유서술 완료</h2>
+      <p>자유서술이 모두 끝났습니다.<br>이제 4지선다형 문항 실시하겠습니다.</p>
+      <button class="btn primary" type="button" data-act="toSituations">다음</button></div>`;
+  } else if (s === "free") {
+    app.innerHTML = `${navBar()}<p class="situation">${esc(FREE_SITUATION)}</p>
+      <form id="freeForm" novalidate><label class="field" for="freeInput">한 두 줄로 자유롭게 서술해주세요</label>
+      <textarea id="freeInput" rows="4" maxlength="300">${esc(state.free)}</textarea>
+      <p class="err" id="freeErr" role="alert"></p>
+      <button class="btn primary" type="submit">다음</button></form>`;
+    document.getElementById("freeInput").focus();
   } else if (s === "situation") {
     const sit = SITUATIONS[state.index];
     app.innerHTML = `${navBar()}<div class="progress">${state.index + 1} / ${SITUATIONS.length}</div>
@@ -171,13 +194,15 @@ function renderResult() {
       <p class="l3 hl">반응시간 ${(a.ms / 1000).toFixed(1)}초</p></div>`;
   }).join("");
   const avg = rows.length ? (total / rows.length / 1000).toFixed(1) : "0.0";
-  app.innerHTML = `${navBar()}<h2>결과</h2><p class="muted">${esc(data.name)}님의 응답 요약</p>${items}
+  const freeBox = data.free ? `<section class="part"><h3 class="part-title">자유서술 답변</h3><div class="item free-item"><div class="l1">자유서술: ${esc(FREE_SITUATION)}</div>
+      <div class="l2 free-answer">${esc(data.free)}</div></div></section>` : "";
+  app.innerHTML = `${navBar()}<h2>결과</h2><p class="muted">${esc(data.name)}님의 응답 요약</p>${freeBox}<section class="part"><h3 class="part-title">4지선다 응답</h3>${items}</section>
     <div class="summary"><p>평균 반응시간 ${avg}초 (문항이 화면에 보인 순간부터 선택까지)</p>
     <p>${TYPES.map((t, i) => `${t} ${counts[i]}회`).join(" · ")}</p></div>`;
 }
 
 function finish() {
-  const data = { name: state.name, answers: state.answers.slice() };
+  const data = { name: state.name, free: state.free, answers: state.answers.slice() };
   state.last = data;
   state.saved = saveResult(data);
   go("done");
@@ -186,8 +211,11 @@ function finish() {
 function onBack() {
   const s = state.screen;
   if (s === "name") go("start");
+  else if (s === "freeIntro") go("name");
+  else if (s === "free") go("freeIntro");
+  else if (s === "freeOutro") go("free");
   else if (s === "situation") {
-    if (state.index === 0) go("name");
+    if (state.index === 0) go("freeOutro");
     else { state.index--; state.answers.length = state.index; go("situation"); }
   } else if (s === "done") {
     state.last = null;
@@ -198,8 +226,8 @@ function onBack() {
 }
 
 function onHome() {
-  if (state.screen === "name" || state.screen === "situation") {
-    state.answers = []; state.index = 0; state.name = "";
+  if (["name", "freeIntro", "free", "freeOutro", "situation"].includes(state.screen)) {
+    state.answers = []; state.index = 0; state.name = ""; state.free = "";
   }
   go("start");
 }
@@ -216,8 +244,10 @@ app.addEventListener("click", e => {
   const act = e.target.closest("[data-act]");
   if (!act) return;
   switch (act.dataset.act) {
-    case "begin": state.answers = []; state.index = 0; go("name"); break;
+    case "begin": state.answers = []; state.index = 0; state.free = ""; go("name"); break;
     case "results": state.resultFrom = state.screen === "done" ? "done" : "start"; go("result"); break;
+    case "toFree": go("free"); break;
+    case "toSituations": state.index = 0; state.answers = []; go("situation"); break;
     case "back": onBack(); break;
     case "home": onHome(); break;
   }
@@ -225,6 +255,17 @@ app.addEventListener("click", e => {
 
 app.addEventListener("submit", e => {
   e.preventDefault();
+  if (e.target.id === "freeForm") {
+    const t = document.getElementById("freeInput");
+    if (!t.value.trim()) {
+      document.getElementById("freeErr").textContent = "내용을 적어 주세요.";
+      t.focus();
+      return;
+    }
+    state.free = t.value.trim();
+    go("freeOutro");
+    return;
+  }
   if (e.target.id !== "nameForm") return;
   const input = document.getElementById("nameInput");
   const v = input.value.trim();
@@ -234,7 +275,7 @@ app.addEventListener("submit", e => {
     return;
   }
   state.name = v; state.answers = []; state.index = 0;
-  go("situation");
+  go("freeIntro");
 });
 
 // 라이트/다크 전환 (기기 설정을 따르고, 선택은 저장하지 않음)
